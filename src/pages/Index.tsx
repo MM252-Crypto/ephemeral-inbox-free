@@ -6,108 +6,87 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
-  from: { address: string; name: string };
+  date: string;
+  from: string;
   subject: string;
-  intro: string;
-  createdAt: string;
-}
-
-interface EmailAccount {
-  id: string;
-  address: string;
-  password: string;
+  body: string;
 }
 
 const Index = () => {
-  const [emailAccount, setEmailAccount] = useState<EmailAccount | null>(null);
+  const [emailAddress, setEmailAddress] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Create email account
-  const createEmailAccount = useCallback(async () => {
+  // Generate random email address
+  const generateEmailAddress = useCallback(() => {
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const email = `${randomString}@maildrop.cc`;
+    setEmailAddress(email);
+    setMessages([]);
+    setTimeLeft(600); // Reset timer
+    setIsLoading(false);
+    
+    console.log('Generated email address:', email);
+    
+    toast({
+      title: "Email Generated",
+      description: `Your temporary email: ${email}`,
+    });
+  }, [toast]);
+
+  // Fetch messages using GraphQL
+  const fetchMessages = useCallback(async () => {
+    if (!emailAddress) return;
+
     try {
-      setIsLoading(true);
+      const mailbox = emailAddress.split('@')[0]; // Get username part
       
-      // First get available domains
-      const domainsResponse = await fetch('https://api.mail.tm/domains');
-      const domains = await domainsResponse.json();
-      
-      if (!domains || domains.length === 0) {
-        throw new Error('No domains available');
-      }
+      const query = {
+        query: `
+          query GetInbox($mailbox: String!) {
+            inbox(mailbox: $mailbox) {
+              id
+              date
+              from
+              subject
+              body
+            }
+          }
+        `,
+        variables: { mailbox }
+      };
 
-      // Create random email address
-      const randomString = Math.random().toString(36).substring(2, 15);
-      const email = `${randomString}@${domains[0].domain}`;
-      const password = Math.random().toString(36).substring(2, 15);
-
-      // Create account
-      const accountResponse = await fetch('https://api.mail.tm/accounts', {
+      const response = await fetch('https://api.maildrop.cc/graphql', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          address: email,
-          password: password,
-        }),
-      });
-
-      if (!accountResponse.ok) {
-        throw new Error('Failed to create account');
-      }
-
-      const account = await accountResponse.json();
-      const newAccount = { ...account, password };
-      
-      setEmailAccount(newAccount);
-      setTimeLeft(600); // Reset timer
-      
-      console.log('Email account created:', newAccount);
-    } catch (error) {
-      console.error('Error creating email account:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create temporary email. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  // Fetch messages
-  const fetchMessages = useCallback(async () => {
-    if (!emailAccount) return;
-
-    try {
-      const response = await fetch(`https://api.mail.tm/messages`, {
-        headers: {
-          'Authorization': `Bearer ${emailAccount.id}`,
-        },
+        body: JSON.stringify(query),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(data || []);
+        if (data.data && data.data.inbox) {
+          setMessages(data.data.inbox);
+        }
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
-  }, [emailAccount]);
+  }, [emailAddress]);
 
   // Copy email to clipboard
   const copyEmail = useCallback(() => {
-    if (emailAccount) {
-      navigator.clipboard.writeText(emailAccount.address);
+    if (emailAddress) {
+      navigator.clipboard.writeText(emailAddress);
       toast({
         title: "Copied!",
         description: "Email address copied to clipboard",
       });
     }
-  }, [emailAccount, toast]);
+  }, [emailAddress, toast]);
 
   // Extend timer
   const extendTimer = useCallback(() => {
@@ -118,6 +97,11 @@ const Index = () => {
     });
   }, [toast]);
 
+  // Generate new email
+  const generateNewEmail = useCallback(() => {
+    generateEmailAddress();
+  }, [generateEmailAddress]);
+
   // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -127,30 +111,31 @@ const Index = () => {
 
   // Initialize on mount
   useEffect(() => {
-    createEmailAccount();
-  }, [createEmailAccount]);
+    generateEmailAddress();
+  }, [generateEmailAddress]);
 
   // Timer countdown
   useEffect(() => {
     if (timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (emailAccount) {
+    } else if (emailAddress) {
       toast({
         title: "Email Expired",
         description: "Generating new temporary email...",
       });
-      createEmailAccount();
+      generateEmailAddress();
     }
-  }, [timeLeft, emailAccount, createEmailAccount, toast]);
+  }, [timeLeft, emailAddress, generateEmailAddress, toast]);
 
   // Poll for messages
   useEffect(() => {
-    if (emailAccount) {
+    if (emailAddress) {
       const interval = setInterval(fetchMessages, 5000);
+      fetchMessages(); // Initial fetch
       return () => clearInterval(interval);
     }
-  }, [emailAccount, fetchMessages]);
+  }, [emailAddress, fetchMessages]);
 
   if (isLoading) {
     return (
@@ -173,13 +158,13 @@ const Index = () => {
         </div>
 
         {/* Email Display */}
-        {emailAccount && (
+        {emailAddress && (
           <Card className="mb-6">
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Mail className="h-6 w-6 text-primary" />
-                  <span className="text-4xl font-bold break-all">{emailAccount.address}</span>
+                  <span className="text-4xl font-bold break-all">{emailAddress}</span>
                 </div>
                 
                 <div className="flex items-center justify-center gap-4 mb-4">
@@ -196,6 +181,11 @@ const Index = () => {
                   <Button onClick={extendTimer} variant="outline" size="sm">
                     <Timer className="h-4 w-4 mr-2" />
                     Extend
+                  </Button>
+                  
+                  <Button onClick={generateNewEmail} variant="outline" size="sm">
+                    <Mail className="h-4 w-4 mr-2" />
+                    New Email
                   </Button>
                 </div>
               </div>
@@ -218,13 +208,13 @@ const Index = () => {
                 {messages.map((message) => (
                   <div key={message.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium">{message.from.name || message.from.address}</div>
+                      <div className="font-medium">{message.from}</div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(message.createdAt).toLocaleTimeString()}
+                        {new Date(message.date).toLocaleString()}
                       </div>
                     </div>
                     <div className="font-semibold mb-1">{message.subject}</div>
-                    <div className="text-sm text-muted-foreground">{message.intro}</div>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">{message.body}</div>
                   </div>
                 ))}
               </div>
