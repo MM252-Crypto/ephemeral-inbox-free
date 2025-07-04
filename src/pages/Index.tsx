@@ -79,6 +79,48 @@ const Index = () => {
     }
   }, [emailAddress]);
 
+  // Fetch full message content
+  const fetchMessageContent = useCallback(async (messageId: string) => {
+    if (!emailAddress) return null;
+
+    try {
+      const mailbox = emailAddress.split('@')[0];
+      
+      const query = {
+        query: `
+          query GetMessage($mailbox: String!, $messageId: String!) {
+            message(mailbox: $mailbox, messageId: $messageId) {
+              id
+              date
+              mailfrom
+              subject
+              data
+            }
+          }
+        `,
+        variables: { mailbox, messageId }
+      };
+
+      const response = await fetch('https://api.maildrop.cc/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(query),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.message) {
+          return data.data.message;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching message content:', error);
+    }
+    return null;
+  }, [emailAddress]);
+
   // Copy email to clipboard
   const copyEmail = useCallback(() => {
     if (emailAddress) {
@@ -211,7 +253,14 @@ const Index = () => {
                   <div 
                     key={message.id} 
                     className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => setSelectedMessage(message)}
+                    onClick={async () => {
+                      const fullMessage = await fetchMessageContent(message.id);
+                      if (fullMessage) {
+                        setSelectedMessage(fullMessage);
+                      } else {
+                        setSelectedMessage(message); // Fallback to original message
+                      }
+                    }}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="font-medium">{message.mailfrom}</div>
@@ -221,7 +270,7 @@ const Index = () => {
                     </div>
                     <div className="font-semibold mb-1">{message.subject}</div>
                     <div className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-2">
-                      {message.data}
+                      {message.data || 'Click to view full email content...'}
                     </div>
                   </div>
                 ))}
