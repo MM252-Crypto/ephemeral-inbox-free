@@ -195,6 +195,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
+        {/* Top Banner Ad */}
+        <div className="mb-6 text-center">
+          <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/20">
+            <p className="text-muted-foreground">Google AdSense Banner Ad (728x90)</p>
+            <p className="text-xs text-muted-foreground mt-1">Replace with actual AdSense code</p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">Temporary Email</h1>
@@ -236,6 +244,14 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Square Ad Between Email and Inbox */}
+        <div className="mb-6 text-center">
+          <div className="border-2 border-dashed border-border rounded-lg p-6 bg-muted/20">
+            <p className="text-muted-foreground">Google AdSense Square Ad (300x250)</p>
+            <p className="text-xs text-muted-foreground mt-1">Replace with actual AdSense code</p>
+          </div>
+        </div>
 
         {/* Inbox */}
         <Card>
@@ -282,8 +298,16 @@ const Index = () => {
         {/* Ad Placeholder */}
         <div className="mt-8 text-center">
           <div className="border-2 border-dashed border-border rounded-lg p-8 bg-muted/20">
-            <p className="text-muted-foreground">Google AdSense Ad Placement</p>
+            <p className="text-muted-foreground">Google AdSense Leaderboard Ad (728x90)</p>
             <p className="text-sm text-muted-foreground mt-1">Replace with actual AdSense code</p>
+          </div>
+        </div>
+
+        {/* Footer Ad */}
+        <div className="mt-8 mb-6 text-center">
+          <div className="border-2 border-dashed border-border rounded-lg p-6 bg-muted/20">
+            <p className="text-muted-foreground">Google AdSense Footer Ad (320x100)</p>
+            <p className="text-xs text-muted-foreground mt-1">Replace with actual AdSense code</p>
           </div>
         </div>
 
@@ -314,8 +338,10 @@ const Index = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Message</label>
-                  <div className="mt-2 p-4 bg-muted/20 rounded-lg">
-                    <div className="whitespace-pre-wrap text-sm">{selectedMessage.data}</div>
+                  <div className="mt-2 p-4 bg-muted/20 rounded-lg min-h-[200px]">
+                    <div className="whitespace-pre-wrap text-sm">
+                      {selectedMessage.data || 'Loading message content...'}
+                    </div>
                   </div>
                 </div>
               </div>
