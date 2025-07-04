@@ -88,8 +88,8 @@ const Index = () => {
       
       const query = {
         query: `
-          query GetMessage($mailbox: String!, $messageId: String!) {
-            message(mailbox: $mailbox, messageId: $messageId) {
+          query GetMessage($mailbox: String!, $id: String!) {
+            message(mailbox: $mailbox, id: $id) {
               id
               date
               mailfrom
@@ -98,7 +98,7 @@ const Index = () => {
             }
           }
         `,
-        variables: { mailbox, messageId }
+        variables: { mailbox, id: messageId }
       };
 
       const response = await fetch('https://api.maildrop.cc/graphql', {
