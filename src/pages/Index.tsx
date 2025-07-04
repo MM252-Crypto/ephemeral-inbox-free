@@ -7,9 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 interface Message {
   id: string;
   date: string;
-  from: string;
+  mailfrom: string;
   subject: string;
-  body: string;
+  data: string;
 }
 
 const Index = () => {
@@ -49,9 +49,9 @@ const Index = () => {
             inbox(mailbox: $mailbox) {
               id
               date
-              from
+              mailfrom
               subject
-              body
+              data
             }
           }
         `,
@@ -208,13 +208,13 @@ const Index = () => {
                 {messages.map((message) => (
                   <div key={message.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium">{message.from}</div>
+                      <div className="font-medium">{message.mailfrom}</div>
                       <div className="text-sm text-muted-foreground">
                         {new Date(message.date).toLocaleString()}
                       </div>
                     </div>
                     <div className="font-semibold mb-1">{message.subject}</div>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">{message.body}</div>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">{message.data}</div>
                   </div>
                 ))}
               </div>
