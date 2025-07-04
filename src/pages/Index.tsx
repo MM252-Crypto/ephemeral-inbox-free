@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, Timer, Mail } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Copy, Timer, Mail, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -17,6 +18,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const { toast } = useToast();
 
   // Generate random email address
@@ -206,7 +208,11 @@ const Index = () => {
             ) : (
               <div className="space-y-3">
                 {messages.map((message) => (
-                  <div key={message.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
+                  <div 
+                    key={message.id} 
+                    className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedMessage(message)}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div className="font-medium">{message.mailfrom}</div>
                       <div className="text-sm text-muted-foreground">
@@ -214,7 +220,9 @@ const Index = () => {
                       </div>
                     </div>
                     <div className="font-semibold mb-1">{message.subject}</div>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">{message.data}</div>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-2">
+                      {message.data}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -229,6 +237,42 @@ const Index = () => {
             <p className="text-sm text-muted-foreground mt-1">Replace with actual AdSense code</p>
           </div>
         </div>
+
+        {/* Email Details Dialog */}
+        <Dialog open={selectedMessage !== null} onOpenChange={() => setSelectedMessage(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedMessage && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">From</label>
+                    <p className="font-medium">{selectedMessage.mailfrom}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date</label>
+                    <p className="text-sm">{new Date(selectedMessage.date).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Subject</label>
+                    <p className="font-semibold">{selectedMessage.subject}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Message</label>
+                  <div className="mt-2 p-4 bg-muted/20 rounded-lg">
+                    <div className="whitespace-pre-wrap text-sm">{selectedMessage.data}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
