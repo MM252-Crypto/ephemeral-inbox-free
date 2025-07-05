@@ -187,6 +187,22 @@ const Index = () => {
         return String.fromCharCode(parseInt(hex, 16));
       });
     
+    // Extract URLs from href attributes before removing HTML tags
+    const hrefMatches = content.match(/href=["']([^"']+)["']/g);
+    const extractedUrls: string[] = [];
+    if (hrefMatches) {
+      hrefMatches.forEach(match => {
+        const url = match.match(/href=["']([^"']+)["']/);
+        if (url && url[1] && url[1].startsWith('http')) {
+          extractedUrls.push(url[1]);
+        }
+      });
+    }
+    
+    // Also look for plain URLs in the text
+    const plainUrls = content.match(/https?:\/\/[^\s<>"']+/g) || [];
+    extractedUrls.push(...plainUrls);
+    
     // Remove HTML tags but preserve text content
     content = content
       .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style blocks
@@ -202,17 +218,22 @@ const Index = () => {
       .replace(/^\s*[\r\n]/gm, '') // Remove empty lines
       .trim();
     
-    // Clean up any remaining CSS-like content but preserve URLs
+    // Clean up any remaining CSS-like content but preserve meaningful text
     if (content.includes('padding:') || content.includes('margin:') || content.includes('font-family:')) {
       // Extract readable sentences and URLs
       const sentences = content.match(/[A-Z][^.!?]*[.!?]/g) || [];
-      const urls = content.match(/https?:\/\/[^\s]+/g) || [];
       const emailAddresses = content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
       
-      const meaningfulContent = [...sentences, ...urls, ...emailAddresses].join('\n\n');
+      const meaningfulContent = [...sentences, ...emailAddresses].join('\n\n');
       if (meaningfulContent.trim()) {
         content = meaningfulContent;
       }
+    }
+    
+    // Add extracted URLs at the end if any were found
+    if (extractedUrls.length > 0) {
+      const uniqueUrls = [...new Set(extractedUrls)]; // Remove duplicates
+      content += '\n\n🔗 Links:\n' + uniqueUrls.join('\n');
     }
     
     return content || 'No readable message content found';
