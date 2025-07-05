@@ -146,6 +146,63 @@ const Index = () => {
     generateEmailAddress();
   }, [generateEmailAddress]);
 
+  // Parse email content to extract readable message
+  const parseEmailContent = (rawContent: string) => {
+    if (!rawContent) return 'No content available';
+    
+    // Try to find content after common email separators
+    const contentSeparators = [
+      'Content-Type: text/plain',
+      'Content-Type: text/html',
+      '\n\n',
+      'DKIM-Signature:',
+      'Message-ID:'
+    ];
+    
+    let content = rawContent;
+    
+    // Remove everything before the actual message content
+    const lines = content.split('\n');
+    let messageStartIndex = -1;
+    
+    // Look for the end of headers (empty line followed by content)
+    for (let i = 0; i < lines.length - 1; i++) {
+      if (lines[i].trim() === '' && lines[i + 1].trim() !== '' && 
+          !lines[i + 1].includes(':') && 
+          !lines[i + 1].startsWith('DKIM-') &&
+          !lines[i + 1].startsWith('by ') &&
+          !lines[i + 1].startsWith('for ') &&
+          !lines[i + 1].startsWith('with ') &&
+          !lines[i + 1].startsWith('Received:')) {
+        messageStartIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (messageStartIndex !== -1) {
+      content = lines.slice(messageStartIndex).join('\n');
+    }
+    
+    // Clean up the content
+    return content
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace HTML entities
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/^DKIM-Signature:.*$/gm, '') // Remove DKIM signatures
+      .replace(/^Received:.*$/gm, '') // Remove email headers
+      .replace(/^by maildrop.*$/gm, '') // Remove maildrop routing
+      .replace(/^with SMTP.*$/gm, '') // Remove SMTP info
+      .replace(/^for .*@maildrop\.cc.*$/gm, '') // Remove routing info
+      .replace(/^[A-Z][a-z]{2},.*\d{4}.*UTC.*$/gm, '') // Remove timestamps
+      .replace(/^Message-ID:.*$/gm, '') // Remove message IDs
+      .replace(/^Content-.*$/gm, '') // Remove content headers
+      .replace(/^\s*[\r\n]/gm, '') // Remove empty lines
+      .trim() || 'No readable message content found';
+  };
+
   // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -340,22 +397,7 @@ const Index = () => {
                   <label className="text-sm font-medium text-muted-foreground">Message</label>
                   <div className="mt-2 p-4 bg-muted/20 rounded-lg min-h-[200px]">
                     <div className="whitespace-pre-wrap text-sm">
-                      {selectedMessage.data 
-                        ? selectedMessage.data
-                            .replace(/<[^>]*>/g, '') // Remove HTML tags
-                            .replace(/&nbsp;/g, ' ') // Replace HTML entities
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>')
-                            .replace(/&quot;/g, '"')
-                            .replace(/^Received:.*$/gm, '') // Remove email headers
-                            .replace(/^by maildrop.*$/gm, '') // Remove maildrop routing
-                            .replace(/^with SMTP.*$/gm, '') // Remove SMTP info
-                            .replace(/^for .*@maildrop\.cc;.*$/gm, '') // Remove routing info
-                            .replace(/^[A-Z][a-z]{2},.*\d{4}.*UTC.*$/gm, '') // Remove timestamps
-                            .replace(/^\s*\n/gm, '') // Remove empty lines
-                            .trim() || 'No readable content available'
-                        : 'Loading message content...'}
+                      {parseEmailContent(selectedMessage.data || '')}
                     </div>
                   </div>
                 </div>
