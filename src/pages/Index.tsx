@@ -340,7 +340,16 @@ const Index = () => {
                   <label className="text-sm font-medium text-muted-foreground">Message</label>
                   <div className="mt-2 p-4 bg-muted/20 rounded-lg min-h-[200px]">
                     <div className="whitespace-pre-wrap text-sm">
-                      {selectedMessage.data || 'Loading message content...'}
+                      {selectedMessage.data 
+                        ? selectedMessage.data
+                            .replace(/<[^>]*>/g, '') // Remove HTML tags
+                            .replace(/&nbsp;/g, ' ') // Replace HTML entities
+                            .replace(/&amp;/g, '&')
+                            .replace(/&lt;/g, '<')
+                            .replace(/&gt;/g, '>')
+                            .replace(/&quot;/g, '"')
+                            .trim()
+                        : 'Loading message content...'}
                     </div>
                   </div>
                 </div>
