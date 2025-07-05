@@ -150,57 +150,60 @@ const Index = () => {
   const parseEmailContent = (rawContent: string) => {
     if (!rawContent) return 'No content available';
     
-    // Try to find content after common email separators
-    const contentSeparators = [
-      'Content-Type: text/plain',
-      'Content-Type: text/html',
-      '\n\n',
-      'DKIM-Signature:',
-      'Message-ID:'
-    ];
-    
     let content = rawContent;
     
-    // Remove everything before the actual message content
-    const lines = content.split('\n');
-    let messageStartIndex = -1;
-    
-    // Look for the end of headers (empty line followed by content)
-    for (let i = 0; i < lines.length - 1; i++) {
-      if (lines[i].trim() === '' && lines[i + 1].trim() !== '' && 
-          !lines[i + 1].includes(':') && 
-          !lines[i + 1].startsWith('DKIM-') &&
-          !lines[i + 1].startsWith('by ') &&
-          !lines[i + 1].startsWith('for ') &&
-          !lines[i + 1].startsWith('with ') &&
-          !lines[i + 1].startsWith('Received:')) {
-        messageStartIndex = i + 1;
-        break;
-      }
+    // First, try to find HTML content between body tags or after headers
+    const htmlBodyMatch = content.match(/<body[^>]*>(.*?)<\/body>/is);
+    if (htmlBodyMatch) {
+      content = htmlBodyMatch[1];
     }
     
-    if (messageStartIndex !== -1) {
-      content = lines.slice(messageStartIndex).join('\n');
+    // Look for content after headers (find double newline that indicates end of headers)
+    const headerEndIndex = content.indexOf('\n\n');
+    if (headerEndIndex !== -1) {
+      content = content.substring(headerEndIndex + 2);
     }
     
-    // Clean up the content
-    return content
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
+    // Remove DKIM signatures and technical headers first
+    content = content
+      .replace(/^DKIM-Signature:.*$/gm, '')
+      .replace(/^Received:.*$/gm, '')
+      .replace(/^Message-ID:.*$/gm, '')
+      .replace(/^Content-.*$/gm, '')
+      .replace(/^by maildrop.*$/gm, '')
+      .replace(/^with SMTP.*$/gm, '')
+      .replace(/^for .*@maildrop\.cc.*$/gm, '');
+    
+    // Remove HTML tags but preserve text content
+    content = content
+      .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style blocks
+      .replace(/<script[^>]*>.*?<\/script>/gis, '') // Remove script blocks
+      .replace(/<[^>]*>/g, ' ') // Remove all HTML tags
       .replace(/&nbsp;/g, ' ') // Replace HTML entities
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
-      .replace(/^DKIM-Signature:.*$/gm, '') // Remove DKIM signatures
-      .replace(/^Received:.*$/gm, '') // Remove email headers
-      .replace(/^by maildrop.*$/gm, '') // Remove maildrop routing
-      .replace(/^with SMTP.*$/gm, '') // Remove SMTP info
-      .replace(/^for .*@maildrop\.cc.*$/gm, '') // Remove routing info
-      .replace(/^[A-Z][a-z]{2},.*\d{4}.*UTC.*$/gm, '') // Remove timestamps
-      .replace(/^Message-ID:.*$/gm, '') // Remove message IDs
-      .replace(/^Content-.*$/gm, '') // Remove content headers
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .replace(/^\s*[\r\n]/gm, '') // Remove empty lines
-      .trim() || 'No readable message content found';
+      .trim();
+    
+    // If content is still mostly technical or CSS, try to extract meaningful text
+    if (content.includes('padding:') || content.includes('margin:') || content.includes('font-family:')) {
+      // This looks like CSS/styling, try to extract just URLs and readable text
+      const urlMatches = content.match(/https?:\/\/[^\s]+/g);
+      const textMatches = content.match(/[A-Za-z][A-Za-z\s]{10,}/g);
+      
+      if (urlMatches || textMatches) {
+        const extractedContent = [];
+        if (textMatches) extractedContent.push(...textMatches.slice(0, 3)); // Take first few text matches
+        if (urlMatches) extractedContent.push(...urlMatches);
+        content = extractedContent.join('\n\n');
+      }
+    }
+    
+    return content || 'No readable message content found';
   };
 
   // Format time
