@@ -174,6 +174,19 @@ const Index = () => {
       .replace(/^with SMTP.*$/gm, '')
       .replace(/^for .*@maildrop\.cc.*$/gm, '');
     
+    // Decode quoted-printable encoding (=20 = space, =3D = =, etc.)
+    content = content
+      .replace(/=20/g, ' ')
+      .replace(/=3D/g, '=')
+      .replace(/=2E/g, '.')
+      .replace(/=2F/g, '/')
+      .replace(/=3A/g, ':')
+      .replace(/=3F/g, '?')
+      .replace(/=26/g, '&')
+      .replace(/=([0-9A-F]{2})/g, (match, hex) => {
+        return String.fromCharCode(parseInt(hex, 16));
+      });
+    
     // Remove HTML tags but preserve text content
     content = content
       .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style blocks
@@ -189,17 +202,16 @@ const Index = () => {
       .replace(/^\s*[\r\n]/gm, '') // Remove empty lines
       .trim();
     
-    // If content is still mostly technical or CSS, try to extract meaningful text
+    // Clean up any remaining CSS-like content but preserve URLs
     if (content.includes('padding:') || content.includes('margin:') || content.includes('font-family:')) {
-      // This looks like CSS/styling, try to extract just URLs and readable text
-      const urlMatches = content.match(/https?:\/\/[^\s]+/g);
-      const textMatches = content.match(/[A-Za-z][A-Za-z\s]{10,}/g);
+      // Extract readable sentences and URLs
+      const sentences = content.match(/[A-Z][^.!?]*[.!?]/g) || [];
+      const urls = content.match(/https?:\/\/[^\s]+/g) || [];
+      const emailAddresses = content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
       
-      if (urlMatches || textMatches) {
-        const extractedContent = [];
-        if (textMatches) extractedContent.push(...textMatches.slice(0, 3)); // Take first few text matches
-        if (urlMatches) extractedContent.push(...urlMatches);
-        content = extractedContent.join('\n\n');
+      const meaningfulContent = [...sentences, ...urls, ...emailAddresses].join('\n\n');
+      if (meaningfulContent.trim()) {
+        content = meaningfulContent;
       }
     }
     
