@@ -348,7 +348,13 @@ const Index = () => {
                             .replace(/&lt;/g, '<')
                             .replace(/&gt;/g, '>')
                             .replace(/&quot;/g, '"')
-                            .trim()
+                            .replace(/^Received:.*$/gm, '') // Remove email headers
+                            .replace(/^by maildrop.*$/gm, '') // Remove maildrop routing
+                            .replace(/^with SMTP.*$/gm, '') // Remove SMTP info
+                            .replace(/^for .*@maildrop\.cc;.*$/gm, '') // Remove routing info
+                            .replace(/^[A-Z][a-z]{2},.*\d{4}.*UTC.*$/gm, '') // Remove timestamps
+                            .replace(/^\s*\n/gm, '') // Remove empty lines
+                            .trim() || 'No readable content available'
                         : 'Loading message content...'}
                     </div>
                   </div>
