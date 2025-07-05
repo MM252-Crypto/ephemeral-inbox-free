@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Copy, Timer, Mail, X } from 'lucide-react';
+import { Copy, Timer, Mail, X, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -146,9 +146,9 @@ const Index = () => {
     generateEmailAddress();
   }, [generateEmailAddress]);
 
-  // Parse email content to extract readable message
+  // Parse email content to extract readable message and links
   const parseEmailContent = (rawContent: string) => {
-    if (!rawContent) return 'No content available';
+    if (!rawContent) return { text: 'No content available', links: [] };
     
     let content = rawContent;
     
@@ -230,13 +230,12 @@ const Index = () => {
       }
     }
     
-    // Add extracted URLs at the end if any were found
-    if (extractedUrls.length > 0) {
-      const uniqueUrls = [...new Set(extractedUrls)]; // Remove duplicates
-      content += '\n\n🔗 Links:\n' + uniqueUrls.join('\n');
-    }
-    
-    return content || 'No readable message content found';
+    // Return both text and links separately
+    const uniqueUrls = [...new Set(extractedUrls)]; // Remove duplicates
+    return {
+      text: content || 'No readable message content found',
+      links: uniqueUrls
+    };
   };
 
   // Format time
@@ -432,9 +431,35 @@ const Index = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Message</label>
                   <div className="mt-2 p-4 bg-muted/20 rounded-lg min-h-[200px]">
-                    <div className="whitespace-pre-wrap text-sm">
-                      {parseEmailContent(selectedMessage.data || '')}
-                    </div>
+                    {(() => {
+                      const parsed = parseEmailContent(selectedMessage.data || '');
+                      return (
+                        <div className="space-y-4">
+                          <div className="whitespace-pre-wrap text-sm">
+                            {parsed.text}
+                          </div>
+                          {parsed.links.length > 0 && (
+                            <div className="border-t pt-4">
+                              <h4 className="text-sm font-medium mb-2">🔗 Links:</h4>
+                              <div className="space-y-2">
+                                {parsed.links.map((link, index) => (
+                                  <div key={index}>
+                                    <a 
+                                      href={link} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline break-all text-sm"
+                                    >
+                                      {link}
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
