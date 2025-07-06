@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Copy, Timer, Mail, X, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -187,6 +187,20 @@ const Index = () => {
       .replace(/=([0-9A-F]{2})/g, (match, hex) => {
         return String.fromCharCode(parseInt(hex, 16));
       });
+
+    // Fix common character encoding issues
+    content = content
+      .replace(/â/g, "'") // Fix apostrophe encoding
+      .replace(/â€™/g, "'") // Another apostrophe variant
+      .replace(/â€œ/g, '"') // Fix left double quote
+      .replace(/â€/g, '"') // Fix right double quote
+      .replace(/â€"/g, '–') // Fix en dash
+      .replace(/â€"/g, '—') // Fix em dash
+      .replace(/Ã¡/g, 'á') // Fix accented a
+      .replace(/Ã©/g, 'é') // Fix accented e
+      .replace(/Ã­/g, 'í') // Fix accented i
+      .replace(/Ã³/g, 'ó') // Fix accented o
+      .replace(/Ãº/g, 'ú') // Fix accented u
     
     // Extract URLs more comprehensively
     const extractedUrls: string[] = [];
@@ -423,6 +437,9 @@ const Index = () => {
                 <Mail className="h-5 w-5" />
                 Email Details
               </DialogTitle>
+              <DialogDescription>
+                View the full content and links from this email message
+              </DialogDescription>
             </DialogHeader>
             {selectedMessage && (
               <div className="space-y-4">
