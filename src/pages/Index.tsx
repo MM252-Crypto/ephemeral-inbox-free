@@ -176,6 +176,7 @@ const Index = () => {
     
     // Decode quoted-printable encoding (=20 = space, =3D = =, etc.)
     content = content
+      .replace(/=\r?\n/g, '') // Remove soft line breaks first
       .replace(/=20/g, ' ')
       .replace(/=3D/g, '=')
       .replace(/=2E/g, '.')
@@ -187,21 +188,32 @@ const Index = () => {
         return String.fromCharCode(parseInt(hex, 16));
       });
     
-    // Extract URLs from href attributes before removing HTML tags
-    const hrefMatches = content.match(/href=["']([^"']+)["']/g);
+    // Extract URLs more comprehensively
     const extractedUrls: string[] = [];
-    if (hrefMatches) {
-      hrefMatches.forEach(match => {
-        const url = match.match(/href=["']([^"']+)["']/);
-        if (url && url[1] && url[1].startsWith('http')) {
-          extractedUrls.push(url[1]);
-        }
-      });
-    }
     
-    // Also look for plain URLs in the text
-    const plainUrls = content.match(/https?:\/\/[^\s<>"']+/g) || [];
+    // Extract URLs from href attributes (with better regex)
+    const hrefMatches = content.match(/href\s*=\s*["']([^"']*https?:\/\/[^"']+)["']/gi) || [];
+    hrefMatches.forEach(match => {
+      const url = match.match(/href\s*=\s*["']([^"']+)["']/i);
+      if (url && url[1]) {
+        extractedUrls.push(url[1].trim());
+      }
+    });
+    
+    // Extract plain URLs with more comprehensive regex
+    const urlRegex = /https?:\/\/(?:[-\w.])+(?:\:[0-9]+)?(?:\/(?:[\w\/_.])*)?(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?/gi;
+    const plainUrls = content.match(urlRegex) || [];
     extractedUrls.push(...plainUrls);
+    
+    // Extract URLs that might be broken across lines or have spaces
+    const brokenUrlRegex = /https?:\/\/[^\s<>"'\n]+(?:\s*\n\s*[^\s<>"'\n]+)*/gi;
+    const brokenUrls = content.match(brokenUrlRegex) || [];
+    brokenUrls.forEach(url => {
+      const cleanedUrl = url.replace(/\s+/g, '').replace(/\n/g, '');
+      if (cleanedUrl.match(/^https?:\/\/.+/)) {
+        extractedUrls.push(cleanedUrl);
+      }
+    });
     
     // Remove HTML tags but preserve text content
     content = content
