@@ -36,7 +36,7 @@ export const EmailDisplay = ({
               <span className="font-mono">{formatTime(timeLeft)}</span>
             </div>
             
-            <Button onClick={copyEmail} variant="outline" size="sm" className="tg-button">
+            <Button onClick={copyEmail} variant="outline" size="sm">
               <Copy className="h-4 w-4 mr-2" />
               Copy Email
             </Button>
